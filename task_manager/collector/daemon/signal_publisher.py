@@ -40,8 +40,15 @@ if __name__ == "__main__":
     channel_name = RedisChannels.TEST_CHANNEL.value
     message = "test_message"
     signal_publisher = SignalPublisher()
-    signal_publisher.run(
-        channel_name=channel_name,
-        message=message,
-        interval=10
-    )
+    try:
+        signal_publisher.run(
+            channel_name=channel_name,
+            message=message,
+            interval=10
+        )
+    except KeyboardInterrupt as e:
+        print(f"Keyboard exception detected: {e}. Closing session")
+    except Exception as e:
+        print(f"Unexpected error detected: {e}. Closing session")
+    finally:
+        pass
