@@ -10,6 +10,11 @@ packages = [{include = "task_manager"}]
 python = "^3.12"
 fastapi = "^0.118.0"
 jupyter = "^1.1.1"
+influxdb = "^5.3.2"
+sqlalchemy = "^2.0.43"
+psycopg2-binary = "^2.9.10"
+python-dotenv = "^1.1.1"
+redis = "^6.4.0"
 
 [tool.poetry.group.dev.dependencies]
 
