@@ -1,5 +1,8 @@
+from typing import Any
 import psutil
 import time
+
+from psycopg import Connection
 from task_manager.collector.utils.constants import RedisChannels
 from task_manager.database.postgres_connector import PostgresConnector
 from task_manager.collector.service.signal_subscriber import SignalSubscriber
@@ -13,14 +16,6 @@ class CPUMetricCollector(SignalSubscriber):
         self.conn = None
         self.cursor = None
 
-    def open_db_connection(self):
-        self.conn = self.postgres_connector.connect()
-        self.cursor = self.conn.cursor()
-
-    def close_db_connection(self):
-        self.cursor.close()
-        self.conn.close()
-
     def collect_cpu_metrics(self):
         cpu_usage = []
         try:
@@ -31,15 +26,17 @@ class CPUMetricCollector(SignalSubscriber):
         finally:
             return cpu_usage
 
-    def insert_cpu_metrics(self, cpu_metrics: list):
-        self.cursor.executemany("INSERT INTO cpu.cpu_usage (timestamp, cpu_usage) VALUES (%s, %s)", cpu_metrics)
-        self.conn.commit()
+    def insert_cpu_metrics(self, cpu_metrics: list, connection: Connection):
+        with connection.cursor() as cur:
+            cur.executemany("INSERT INTO cpu.cpu_usage (timestamp, cpu_usage) VALUES (%s, %s)", cpu_metrics)
+        
+        connection.commit()
 
-    def handle_signal(self, message: str):
+    def handle_signal(self, message: Any, connection: Connection):
         print(f"Signal detected successfully with message: {message}")
         cpu_metrics = self.collect_cpu_metrics()
         if cpu_metrics:
-            self.insert_cpu_metrics(cpu_metrics)
+            self.insert_cpu_metrics(cpu_metrics, connection)
             print(f"Successfully inserted cpu usage metric to DB")
         else:
             print(f"Empty cpu metrics detected. Skipping database insertion.")
@@ -55,22 +52,6 @@ class CPUMetricCollector(SignalSubscriber):
                 self.handle_signal(message=message_data)
             else:
                 pass
-
-if __name__ == "__main__":
-    channel_name = RedisChannels.TEST_CHANNEL.value
-    cpu_metric_collector = CPUMetricCollector()
-    cpu_metric_collector.open_db_connection()
-    try:
-        while True:
-            cpu_metric_collector.run(channel_name=channel_name)
-    except KeyboardInterrupt as e:
-        print(f"Keyboard exception detected: {e}. Closing session")
-        cpu_metric_collector.close_db_connection()
-    except Exception as e:
-        print(f"Unexpected error detected: {e}. Closing session")
-        cpu_metric_collector.close_db_connection()
-    finally:
-        pass
 
 
     

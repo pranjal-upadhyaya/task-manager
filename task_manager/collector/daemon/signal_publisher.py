@@ -1,4 +1,3 @@
-from json.encoder import JSONEncoder
 import time
 from task_manager.database.redis_connector import RedisConnector
 from task_manager.collector.utils.constants import RedisChannels
