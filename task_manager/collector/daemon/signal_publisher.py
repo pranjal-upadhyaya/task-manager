@@ -1,6 +1,9 @@
+from json.encoder import JSONEncoder
 import time
 from task_manager.database.redis_connector import RedisConnector
 from task_manager.collector.utils.constants import RedisChannels
+from task_manager.models.commons import MetricType
+import json
 
 
 class SignalPublisher:
@@ -16,7 +19,9 @@ class SignalPublisher:
             print(f"Failed to connect to the redis_client: {e}")
             raise
 
-    def publish_signal(self, channel_name: str, message: str):
+    def publish_signal(self, channel_name: str, message: dict):
+
+        message = json.dumps(message)
 
         self.redis_client.publish(
             channel = channel_name,
@@ -27,7 +32,15 @@ class SignalPublisher:
 
         return None
 
-    def run(self, channel_name: str, message: str, interval: int):
+    def create_message(self):
+
+        message = {}
+
+        message["metric_type"] = MetricType.CPU_USAGE_PERCENT.value
+
+        return message
+
+    def run(self, channel_name: str, message: dict, interval: int):
         while True:
             self.publish_signal(
                 channel_name=channel_name, 
@@ -38,8 +51,8 @@ class SignalPublisher:
 
 if __name__ == "__main__":
     channel_name = RedisChannels.TEST_CHANNEL.value
-    message = "test_message"
     signal_publisher = SignalPublisher()
+    message = signal_publisher.create_message()
     try:
         signal_publisher.run(
             channel_name=channel_name,
